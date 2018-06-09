@@ -34,7 +34,7 @@ var ffmpegOut, _ = ffmpeg.StdoutPipe()
 var flightData *tello.FlightData
 
 var detectSize = true
-var distTolerance = float64(0.01 * dist(0, 0, frameX, frameY))
+var distTolerance = float64(0.05 * dist(0, 0, frameX, frameY))
 
 func setup(delay int64) {
 	go func() {
@@ -50,6 +50,7 @@ func setup(delay int64) {
 
 		drone.On(tello.ConnectedEvent, func(data interface{}) {
 			fmt.Println("Connected")
+			fmt.Println("Distance Tolerance = ", distTolerance)
 			drone.StartVideo()
 			drone.SetVideoEncoderRate(tello.VideoBitRateAuto)
 			drone.SetExposure(0)
@@ -57,7 +58,7 @@ func setup(delay int64) {
 			gobot.After(time.Duration(delay)*time.Second, func() {
 				drone.Land()
 			})
-			gobot.Every(100*time.Millisecond, func() {
+			gobot.Every(250*time.Millisecond, func() {
 				drone.StartVideo()
 			})
 		})
@@ -171,6 +172,11 @@ func main() {
 				i_bottom = bottom
 				i_top = top
 				i_distance = dist(i_left, i_top, i_right, i_bottom)
+				fmt.Printf("Face initial distance %d\n", i_distance)
+				if i_distance < distTolerance*5 {
+					fmt.Printf("Face found but too far away for baseline\n", i_distance)
+					firstDetect = true
+				}
 			}
 			rect := image.Rect(int(left), int(top), int(right), int(bottom))
 			gocv.Rectangle(&img, rect, green, 3)
@@ -183,8 +189,12 @@ func main() {
 			break
 		}
 
-		//if !tracking || !detected {
+		//if !tracking || !detected
 		if !detected {
+			fmt.Println("Face not detected\n")
+			drone.Clockwise(0)
+			drone.Up(0)
+			drone.Forward(0)
 			continue
 		}
 
@@ -197,16 +207,13 @@ func main() {
 			fmt.Printf("refDistance: %d\n", refDistance)
 		}
 
-		distance := dist(left, top, right, bottom)
-		fmt.Printf("Distance: %d i_distance\n", distance, i_distance)
-
 		// Lets put image in center of image
 		if right < W/2 {
 			fmt.Printf("right : %q < W/2 %q\n", right, W/2)
-			drone.CounterClockwise(10)
+			drone.CounterClockwise(15)
 		} else if left > W/2 {
 			fmt.Printf("left : %q > W/2 %q\n", left, W/2)
-			drone.Clockwise(10)
+			drone.Clockwise(30)
 		} else {
 			fmt.Printf("not right or left\n")
 			drone.Clockwise(0)
@@ -215,21 +222,21 @@ func main() {
 		// Lets put image in center of image
 		if top < H/10 {
 			fmt.Printf("top : %q < H/2 %q\n", top, H/2)
-			drone.Up(10)
+			drone.Up(30)
 		} else if bottom > H-H/10 {
 			fmt.Printf("bottom : %q > H-H/10 %q\n", bottom, H-H/10)
-			drone.Down(10)
+			drone.Down(30)
 		} else {
 			fmt.Printf("not up or down\n")
 			drone.Up(0)
 		}
 
-		if distance < (i_distance - distTolerance) {
-			fmt.Printf("forward : %q  %q %q\n", distance, i_distance-distTolerance, i_distance)
-			drone.Backward(10)
-		} else if distance > (i_distance + distTolerance) {
-			fmt.Printf("backwards : %q  %q %q\n", distance, i_distance+distTolerance, i_distance)
-			drone.Forward(10)
+		if refDistance < (i_distance - distTolerance) {
+			fmt.Printf("forward : %q  %q %q\n", refDistance, i_distance-distTolerance, i_distance)
+			drone.Forward(30)
+		} else if refDistance > (i_distance + distTolerance) {
+			fmt.Printf("backwards : %q  %q %q\n", refDistance, i_distance+distTolerance, i_distance)
+			drone.Backward(30)
 		} else {
 			fmt.Printf("not forward or back\n")
 			drone.Forward(0)
