@@ -21,7 +21,7 @@ import (
 
 const frameSize = frameX * frameY * 3
 const frameX = 400
-const frameY = 300
+const frameY = 350
 
 var drone = tello.NewDriver("8890")
 var window = gocv.NewWindow("Tello")
@@ -176,6 +176,9 @@ func main() {
 				if i_distance < distTolerance*5 {
 					fmt.Printf("Face found but too far away for baseline\n", i_distance)
 					firstDetect = true
+				} else {
+					drone.Up(50)
+					drone.Down(50)
 				}
 			}
 			rect := image.Rect(int(left), int(top), int(right), int(bottom))
@@ -231,11 +234,11 @@ func main() {
 			drone.Up(0)
 		}
 
-		if refDistance < (i_distance - distTolerance) {
-			fmt.Printf("forward : %q  %q %q\n", refDistance, i_distance-distTolerance, i_distance)
+		if refDistance < (i_distance - distTolerance/1.5) {
+			fmt.Printf("forward : %q  %q %q\n", refDistance, i_distance-distTolerance/1.5, i_distance)
 			drone.Forward(30)
-		} else if refDistance > (i_distance + distTolerance) {
-			fmt.Printf("backwards : %q  %q %q\n", refDistance, i_distance+distTolerance, i_distance)
+		} else if refDistance > (i_distance + distTolerance/1.5) {
+			fmt.Printf("backwards : %q  %q %q\n", refDistance, i_distance+distTolerance/1.5, i_distance)
 			drone.Backward(30)
 		} else {
 			fmt.Printf("not forward or back\n")
