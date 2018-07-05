@@ -21,20 +21,25 @@ import (
 
 const frameSize = frameX * frameY * 3
 const frameX = 400
+
 const frameY = 350
+
+//const frameY = 400
 
 var drone = tello.NewDriver("8890")
 var window = gocv.NewWindow("Tello")
 
-var ffmpeg = exec.Command("ffmpeg", "-hwaccel", "auto", "-hwaccel_device", "opencl", "-i", "pipe:0",
+var ffmpeg = exec.Command("ffmpeg", "-hwaccel", "auto", "-threads", "0", "-hwaccel_device", "opencl", "-i", "pipe:0",
 	"-pix_fmt", "bgr24", "-s", strconv.Itoa(frameX)+"x"+strconv.Itoa(frameY), "-f", "rawvideo", "pipe:1")
+
+//var ffmpeg = exec.Command("mplayer", "-xy", "400", "-fps", "25", "-lavdopts", "threads=4", "-framedrop", "-")
 var ffmpegIn, _ = ffmpeg.StdinPipe()
 var ffmpegOut, _ = ffmpeg.StdoutPipe()
 
 var flightData *tello.FlightData
 
 var detectSize = true
-var distTolerance = float64(0.05 * dist(0, 0, frameX, frameY))
+var distTolerance = float64(0.02 * dist(0, 0, frameX, frameY))
 
 func setup(delay int64) {
 	go func() {
